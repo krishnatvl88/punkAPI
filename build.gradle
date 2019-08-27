@@ -1,0 +1,57 @@
+group 'punkAutomation'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+
+
+tasks.withType(Test) {
+    systemProperties = [
+            env               : System.getProperty('env', 'prod'),
+            tags              : System.getProperty('tags', 'SMOKE')
+    ]
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    compile group: 'org.testng', name: 'testng', version: '6.8.8'
+    compile group: 'io.rest-assured', name: 'rest-assured', version: '3.0.2'
+    compile group: 'io.rest-assured', name: 'json-schema-validator', version: '3.0.2'
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compileOnly "org.projectlombok:lombok:1.18.2"
+    testCompileOnly "org.projectlombok:lombok:1.18.2"
+    annotationProcessor "org.projectlombok:lombok:1.18.2"
+    testAnnotationProcessor "org.projectlombok:lombok:1.18.2"
+    testCompile(group: 'org.uncommons', name: 'reportng', version: '1.1.4') {
+        exclude group: 'org.testng', module: 'testng'
+    }
+    testCompile(group: 'com.google.inject', name: 'guice', version: '3.0')
+    testCompile(group: 'io.qameta.allure', name: 'allure-rest-assured', version: '2.12.1') {
+        exclude group: 'io.rest-assured', module: 'rest-assured'
+    }
+
+}
+
+task download(type: Exec) {
+    configurations.testCompile.files
+    commandLine 'echo', 'Downloaded all dependencies'
+}
+
+task runTests(type: Test){
+    useTestNG() {
+        parallel = "classes"
+        //set TestNG output dir
+        //required to turn on TestNG reports
+        includeGroups System.getProperty('tags', 'SMOKE')
+        useDefaultListeners = false
+        listeners << 'org.uncommons.reportng.HTMLReporter'
+        listeners << 'org.uncommons.reportng.JUnitXMLReporter'
+        listeners << 'org.testng.reporters.XMLReporter'
+        outputDirectory = file("$project.buildDir/testngOutput")
+    }
+}
